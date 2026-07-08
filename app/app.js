@@ -51,6 +51,7 @@ function baseStyle(kind){
   const b = BASE[kind];
   const [W,S,E,N] = META.bbox;
   const box = [[W,N],[E,N],[E,S],[W,S]];
+  const canopyTiles = new URL("data/canopy_tiles/", location.href).href + "{z}/{x}/{y}.png";
   const vis = (id) => (active[id] ? "visible" : "none");
   const rast = (id, extra) => ({ id, type:"raster", source:id,
     layout:{ visibility:vis(id) },
@@ -61,7 +62,8 @@ function baseStyle(kind){
       base:{ type:"raster", tiles:b.tiles, tileSize:256, attribution:b.attribution },
       heat:{ type:"image", url:"data/heat.png", coordinates:box },
       landcover:{ type:"image", url:"data/landcover.png", coordinates:box },
-      canopy:{ type:"image", url:"data/canopy.png", coordinates:box },
+      // native canopy pyramid: standard raster tiles (no protocol), bounds stop off-area 404s
+      canopy:{ type:"raster", tiles:[canopyTiles], tileSize:256, minzoom:11, maxzoom:16, bounds:[W,S,E,N] },
       priority:{ type:"image", url:"data/priority.png", coordinates:box },
     },
     // bottom -> top: base, heat, landcover, canopy, priority
@@ -69,7 +71,7 @@ function baseStyle(kind){
       { id:"bg", type:"background", paint:{ "background-color":"#0f1a14" } },
       { id:"base", type:"raster", source:"base" },
       rast("heat"), rast("landcover", { "raster-resampling":"nearest" }),
-      rast("canopy"), rast("priority"),
+      rast("canopy", { "raster-resampling":"nearest" }), rast("priority"),
     ],
   };
 }
@@ -101,7 +103,7 @@ async function init(){
 
   map = new maplibregl.Map({
     container:"map", style:baseStyle("map"), center:META.center,
-    zoom:13, minZoom:9, maxZoom:18, attributionControl:{ compact:false },
+    zoom:13, minZoom:9, maxZoom:19, attributionControl:{ compact:false },
   });
   map.addControl(new maplibregl.NavigationControl({ showCompass:false }), "top-right");
   map.addControl(new maplibregl.ScaleControl({ maxWidth:120, unit:"metric" }), "bottom-left");
@@ -251,7 +253,7 @@ function buildLayerCards(){
         <label class="sw-toggle"><input type="checkbox" data-toggle="${id}" ${active[id]?"checked":""}/>
           <span class="track"><span class="thumb"></span></span></label>
       </div>
-      <div class="note">${id === "canopy" ? "Canopy height from an ML model on ~1 m imagery. It reads height, so it separates trees (tall) from grass, crops and parks (low), not by colour. Generalised to a few metres for the web." : L.note}</div>
+      <div class="note">${id === "canopy" ? "Canopy height from an ML model on ~1 m imagery. It reads height, so it separates trees (tall) from grass, crops and parks (low), not by colour. Native-resolution tiles (~2.4 m) - zoom right in to pick out individual tree crowns." : L.note}</div>
       ${legendFor(id, L)}
     </div>`;
   }).join("");

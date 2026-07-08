@@ -1,17 +1,19 @@
 """
-Build a native ~1 m canopy-height tileset for Larkana as a single PMTiles file.
+Build a crisp, deep-zoomable canopy-height overlay for Larkana as a standard XYZ
+raster-tile pyramid (app/data/canopy_tiles/{z}/{x}/{y}.png). No PMTiles, no custom
+protocol - MapLibre serves it with a plain raster source, so it can't break the
+style load. Downsampling is done with MAX-POOLING in height space so an isolated
+tree never gets averaged away, and colour is applied after, with a hard alpha cut
+below ~1.5 m so bare gaps show through.
 
-The Meta/WRI CHM tiles are already EPSG:3857 (Web Mercator), 32768 px = zoom 17,
-so they map straight onto XYZ tiles with no reprojection. We read each source's
-Larkana window once (via GDAL range reads - full-file downloads get throttled),
-hold it in memory, slice/colour every 256 px tile from it, skip empty tiles, and
-pack the lot into app/data/canopy.pmtiles. MapLibre then serves individual tree
-crowns crisply on zoom-in.
+The Meta/WRI CHM tiles are already EPSG:3857 (Web Mercator). We read each source's
+Larkana window once (GDAL range reads at the x2 overview ~2.4 m; full-native reads
+get throttled by S3), hold it in memory, and slice every 256 px tile from it.
 """
 import os
-import io
 import math
 import time
+import shutil
 
 os.environ["GDAL_DISABLE_READDIR_ON_OPEN"] = "EMPTY_DIR"
 os.environ.setdefault("GDAL_HTTP_TIMEOUT", "60")
@@ -23,15 +25,15 @@ from rasterio import Affine
 from rasterio.enums import Resampling
 from rasterio.windows import from_bounds as wfb, Window
 from PIL import Image
-from pmtiles.writer import Writer
-from pmtiles.tile import zxy_to_tileid, TileType, Compression
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "app", "data")
+TILES = os.path.join(OUT, "canopy_tiles")
 W, S, E, N = 68.10, 27.47, 68.33, 27.65
 CHM_BASE = "https://dataforgood-fb-data.s3.amazonaws.com/forests/v2/global/dinov3_global_chm_v2_ml3/chm/"
 QUADKEYS = ["1231202221", "1231202230"]
-MINZ, MAXZ = 11, 16   # source read at the x2 overview (~2.4 m); MapLibre overzooms past 16
+MINZ, MAXZ = 11, 16    # native tiles to z16 (~2.4 m); MapLibre overzooms these crisply
+TREE_MIN = 1.5         # metres: hard alpha cut - below this is not drawn
 R = 6378137.0
 
 
@@ -42,25 +44,24 @@ def ll2m(lon, lat):
 mminx, mminy = ll2m(W, S)
 mmaxx, mmaxy = ll2m(E, N)
 
-# ---- read each source's Larkana window once (native res, range reads) ----
+# ---- read each source's Larkana window once (x2 overview -> cheap range reads) ----
 packs = []
 for qk in QUADKEYS:
     t = time.time()
     with rasterio.open(CHM_BASE + qk + ".tif") as s:
         win = wfb(mminx, mminy, mmaxx, mmaxy, transform=s.transform)
         win = win.intersection(Window(0, 0, s.width, s.height))
-        ow = max(1, int(round(win.width)) // 2)   # x2 overview -> cheap range reads
+        ow = max(1, int(round(win.width)) // 2)
         oh = max(1, int(round(win.height)) // 2)
         arr = s.read(1, window=win, out_shape=(oh, ow), resampling=Resampling.bilinear).astype(np.float32)
         wt = s.window_transform(win) * Affine.scale(win.width / ow, win.height / oh)
     left, top = wt.c, wt.f
-    right = wt.c + wt.a * arr.shape[1]
-    bottom = wt.f + wt.e * arr.shape[0]
+    right, bottom = wt.c + wt.a * arr.shape[1], wt.f + wt.e * arr.shape[0]
     packs.append((arr, wt, (left, bottom, right, top)))
     print(f"read {qk}: {arr.shape} in {time.time()-t:.0f}s", flush=True)
 
-# ---- height -> RGBA ramp (matches convert.py) ----
-XP, RR, GG, BB = [1, 5, 10, 15], [173, 95, 40, 12], [209, 170, 120, 70], [158, 90, 55, 30]
+# ---- colour ramp (height -> RGBA), hard alpha below TREE_MIN ----
+XP, RR, GG, BB = [1.5, 5, 10, 15], [173, 95, 40, 12], [209, 170, 120, 70], [158, 90, 55, 30]
 
 
 def colorize(h):
@@ -68,9 +69,27 @@ def colorize(h):
     rgba[..., 0] = np.interp(h, XP, RR).astype(np.uint8)
     rgba[..., 1] = np.interp(h, XP, GG).astype(np.uint8)
     rgba[..., 2] = np.interp(h, XP, BB).astype(np.uint8)
-    a = 135 + np.clip((h - 1) / 9.0, 0, 1) * 105
-    rgba[..., 3] = np.where(h >= 1.0, a, 0).astype(np.uint8)
+    rgba[..., 3] = np.where(h >= TREE_MIN, 235, 0).astype(np.uint8)
     return rgba
+
+
+def resize2d(a, oh, ow):
+    """Resize a 2D height array. Downsampling uses MAX-POOLING so single trees
+    survive; upsampling uses nearest so tree pixels stay sharp."""
+    h, w = a.shape
+    if h == oh and w == ow:
+        return a
+    if h >= oh and w >= ow:                       # downscale: two-pass max-pool
+        yb = np.minimum(np.arange(h) * oh // h, oh - 1)
+        xb = np.minimum(np.arange(w) * ow // w, ow - 1)
+        tmp = np.zeros((oh, w), np.float32)
+        np.maximum.at(tmp, yb, a)
+        out = np.zeros((oh, ow), np.float32)
+        np.maximum.at(out.T, xb, tmp.T)
+        return out
+    yi = np.minimum(np.arange(oh) * h // oh, h - 1)  # upscale: nearest
+    xi = np.minimum(np.arange(ow) * w // ow, w - 1)
+    return a[yi][:, xi]
 
 
 def tile_merc_bounds(z, x, y):
@@ -97,15 +116,14 @@ def sub_from(pack, minx, miny, maxx, maxy):
         return None
     c0 = max(0, int(round((ix0 - wt.c) / wt.a)))
     c1 = min(arr.shape[1], int(round((ix1 - wt.c) / wt.a)))
-    r0 = max(0, int(round((iy1 - wt.f) / wt.e)))   # wt.e < 0, top row for iy1(top)
+    r0 = max(0, int(round((iy1 - wt.f) / wt.e)))
     r1 = min(arr.shape[0], int(round((iy0 - wt.f) / wt.e)))
     if c1 <= c0 or r1 <= r0:
         return None
     piece = arr[r0:r1, c0:c1]
     ow = max(1, int(round(256 * (ix1 - ix0) / (maxx - minx))))
     oh = max(1, int(round(256 * (iy1 - iy0) / (maxy - miny))))
-    if piece.shape != (oh, ow):
-        piece = np.asarray(Image.fromarray(piece, "F").resize((ow, oh), Image.BILINEAR), np.float32)
+    piece = resize2d(piece, oh, ow)
     col = int(round(256 * (ix0 - minx) / (maxx - minx)))
     row = int(round(256 * (maxy - iy1) / (maxy - miny)))
     return piece, row, col
@@ -129,7 +147,12 @@ def tile_heights(z, x, y):
     return out if got else None
 
 
-tiles = {}
+# ---- write the XYZ pyramid ----
+if os.path.exists(TILES):
+    shutil.rmtree(TILES)
+os.makedirs(TILES, exist_ok=True)
+
+total = 0
 for z in range(MINZ, MAXZ + 1):
     x0, x1 = lon2x(W, z), lon2x(E, z)
     y0, y1 = lat2y(N, z), lat2y(S, z)
@@ -137,30 +160,20 @@ for z in range(MINZ, MAXZ + 1):
     for x in range(x0, x1 + 1):
         for y in range(y0, y1 + 1):
             h = tile_heights(z, x, y)
-            if h is None or not (h >= 1.0).any():
+            if h is None or not (h >= TREE_MIN).any():
                 continue
-            im = Image.fromarray(colorize(h), "RGBA")
-            buf = io.BytesIO()
-            im.save(buf, "PNG")
-            tiles[zxy_to_tileid(z, x, y)] = buf.getvalue()
+            d = os.path.join(TILES, str(z), str(x))
+            os.makedirs(d, exist_ok=True)
+            Image.fromarray(colorize(h), "RGBA").save(os.path.join(d, f"{y}.png"), optimize=True)
             cnt += 1
-    print(f"  z{z}: {cnt} non-empty tiles", flush=True)
+    total += cnt
+    print(f"  z{z}: {cnt} tiles", flush=True)
 
-print("total tiles:", len(tiles), flush=True)
+# a small manifest the app can read for min/max zoom + bounds
+import json
+with open(os.path.join(OUT, "canopy_tiles.json"), "w") as f:
+    json.dump({"minzoom": MINZ, "maxzoom": MAXZ, "bounds": [W, S, E, N], "tiles": total,
+               "note": f"native to ~2.4 m (z{MAXZ}); max-pooled so single trees survive"}, f)
 
-cx, cy = (W + E) / 2, (S + N) / 2
-with open(os.path.join(OUT, "canopy.pmtiles"), "wb") as f:
-    w = Writer(f)
-    for tid in sorted(tiles):
-        w.write_tile(tid, tiles[tid])
-    header = {
-        "tile_type": TileType.PNG, "tile_compression": Compression.NONE,
-        "min_lon_e7": int(W * 1e7), "min_lat_e7": int(S * 1e7),
-        "max_lon_e7": int(E * 1e7), "max_lat_e7": int(N * 1e7),
-        "center_zoom": 14, "center_lon_e7": int(cx * 1e7), "center_lat_e7": int(cy * 1e7),
-    }
-    w.finalize(header, {"name": "Larkana canopy height (Meta/WRI CHM v2)",
-                        "attribution": "Meta &amp; WRI CHM v2, CC-BY 4.0"})
-
-mb = os.path.getsize(os.path.join(OUT, "canopy.pmtiles")) / 1e6
-print(f"wrote app/data/canopy.pmtiles  ({mb:.1f} MB, {len(tiles)} tiles, z{MINZ}-{MAXZ})", flush=True)
+size_mb = sum(os.path.getsize(os.path.join(dp, fn)) for dp, _, fns in os.walk(TILES) for fn in fns) / 1e6
+print(f"wrote {total} tiles to app/data/canopy_tiles/ ({size_mb:.1f} MB, z{MINZ}-{MAXZ})", flush=True)
