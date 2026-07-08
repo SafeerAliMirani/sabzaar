@@ -51,7 +51,6 @@ function baseStyle(kind){
   const b = BASE[kind];
   const [W,S,E,N] = META.bbox;
   const box = [[W,N],[E,N],[E,S],[W,S]];
-  const canopyPM = "pmtiles://" + new URL("data/canopy.pmtiles", location.href).href;
   const vis = (id) => (active[id] ? "visible" : "none");
   const rast = (id, extra) => ({ id, type:"raster", source:id,
     layout:{ visibility:vis(id) },
@@ -62,7 +61,7 @@ function baseStyle(kind){
       base:{ type:"raster", tiles:b.tiles, tileSize:256, attribution:b.attribution },
       heat:{ type:"image", url:"data/heat.png", coordinates:box },
       landcover:{ type:"image", url:"data/landcover.png", coordinates:box },
-      canopy:{ type:"raster", url:canopyPM, tileSize:256 },
+      canopy:{ type:"image", url:"data/canopy.png", coordinates:box },
       priority:{ type:"image", url:"data/priority.png", coordinates:box },
     },
     // bottom -> top: base, heat, landcover, canopy, priority
@@ -94,11 +93,6 @@ const POINT_STYLE = {
 init();
 
 async function init(){
-  // register the PMTiles protocol so the canopy tileset can be served from one file
-  if (typeof pmtiles !== "undefined" && !window.__pmreg) {
-    maplibregl.addProtocol("pmtiles", new pmtiles.Protocol().tile);
-    window.__pmreg = true;
-  }
   META = await (await fetch(DATA)).json();
   try {
     const p = await (await fetch("data/trees/photos.json")).json();
@@ -257,7 +251,7 @@ function buildLayerCards(){
         <label class="sw-toggle"><input type="checkbox" data-toggle="${id}" ${active[id]?"checked":""}/>
           <span class="track"><span class="thumb"></span></span></label>
       </div>
-      <div class="note">${id === "canopy" ? "Canopy height from an ML model on ~1 m imagery. It reads height, so it separates trees (tall) from grass, crops and parks (low), not by colour. Served as native-resolution tiles - zoom in for individual tree crowns." : L.note}</div>
+      <div class="note">${id === "canopy" ? "Canopy height from an ML model on ~1 m imagery. It reads height, so it separates trees (tall) from grass, crops and parks (low), not by colour. Generalised to a few metres for the web." : L.note}</div>
       ${legendFor(id, L)}
     </div>`;
   }).join("");
