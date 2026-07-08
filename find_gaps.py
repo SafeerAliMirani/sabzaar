@@ -29,8 +29,9 @@ OUT = os.path.join(HERE, "app", "data")
 W, S, E, N = 68.10, 27.47, 68.33, 27.65
 DST_CRS = "EPSG:4326"
 CELL_M = 3.0                       # analysis resolution (metres)
-CLEAR_MIN = 3.0                    # min clearance to nearest obstacle for a spot (m)
-SEP_CELLS = 13                     # spacing between candidates (~40 m)
+CLEAR_MIN = 2.5                    # min clearance: room for a tree
+CLEAR_MAX = 12.0                   # max clearance: skip big obvious open fields, keep tight gaps
+SEP_CELLS = 12                     # spacing between candidates (~36 m)
 CAP = 4000
 CHM_BASE = "https://dataforgood-fb-data.s3.amazonaws.com/forests/v2/global/dinov3_global_chm_v2_ml3/chm/"
 QUADKEYS = ["1231202221", "1231202230"]
@@ -94,15 +95,23 @@ urban = ndimage.binary_dilation(builtup, iterations=int(round(150 / CELL_M)))
 plantable = urban & (~building) & (~tree) & (~exclude_lc)
 del urban, exclude_lc
 
-# ---- clearance to nearest obstacle, then pick well-spaced local maxima ----
+# ---- clearance to nearest obstacle ----
 print("distance transform...", flush=True)
 dist = ndimage.distance_transform_edt(plantable).astype(np.float32) * CELL_M
-peaks = (dist >= CLEAR_MIN) & (dist == ndimage.maximum_filter(dist, size=SEP_CELLS))
+
+# We want TREE-SIZED gaps embedded in the CONGESTED fabric - not big obvious open
+# fields. So: clearance in a plantable-but-not-huge band, sitting in a built-up
+# neighbourhood, and rank by how built-up (congested) the surroundings are.
+built_frac = ndimage.uniform_filter(building.astype(np.float32), size=27)   # built-up share within ~80 m
+peaks = ((dist >= CLEAR_MIN) & (dist <= CLEAR_MAX) &
+         (dist == ndimage.maximum_filter(dist, size=SEP_CELLS)) &
+         (built_frac >= 0.12))
 ys, xs = np.where(peaks)
 clear = dist[ys, xs]
+dens = built_frac[ys, xs]
 print(f"  {clear.size} raw candidates", flush=True)
 
-order = np.argsort(-clear)[:CAP]
+order = np.argsort(-dens)[:CAP]   # gaps in the most built-up (congested) blocks first
 feats = []
 for i in order:
     lon = W + (xs[i] + 0.5) / GW * (E - W)
