@@ -45,7 +45,8 @@ const BASE = {
   map: { tiles: ["https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"],
          attribution: OSM_ATTR + ' &copy; <a href="https://carto.com/attributions">CARTO</a>' },
   sat: { tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
-         attribution: 'Imagery &copy; Esri, Maxar, Earthstar Geographics' },
+         attribution: 'Imagery &copy; Esri, Maxar, Earthstar Geographics',
+         maxzoom: 18 },   // Esri imagery for Larkana goes patchy past z18; overzoom the real tiles instead of fetching "no data" placeholders
 };
 function baseStyle(kind){
   const b = BASE[kind];
@@ -59,7 +60,7 @@ function baseStyle(kind){
   return {
     version:8,
     sources:{
-      base:{ type:"raster", tiles:b.tiles, tileSize:256, attribution:b.attribution },
+      base:{ type:"raster", tiles:b.tiles, tileSize:256, attribution:b.attribution, ...(b.maxzoom ? { maxzoom:b.maxzoom } : {}) },
       heat:{ type:"image", url:"data/heat.png", coordinates:box },
       landcover:{ type:"image", url:"data/landcover.png", coordinates:box },
       // native canopy pyramid: standard raster tiles (no protocol), bounds stop off-area 404s
