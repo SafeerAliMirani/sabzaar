@@ -12,3 +12,10 @@ _buildings.geojson
 *.state
 .DS_Store
 Thumbs.db
+
+.venv-detect/
+_esri_sample/
+*.pid
+
+lightning_logs/
+detect_preview.png

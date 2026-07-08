@@ -67,8 +67,9 @@ function baseStyle(kind){
       canopy:{ type:"raster", tiles:[canopyTiles], tileSize:256, minzoom:11, maxzoom:17, bounds:[W,S,E,N] },
       priority:{ type:"image", url:"data/priority.png", coordinates:box },
       plantspots:{ type:"geojson", data:new URL("data/gaps.geojson", location.href).href },
+      currenttrees:{ type:"geojson", data:new URL("data/current_trees.geojson", location.href).href },
     },
-    // bottom -> top: base, heat, landcover, canopy, priority, plantspots
+    // bottom -> top: base, heat, landcover, canopy, priority, plantspots, currenttrees
     layers:[
       { id:"bg", type:"background", paint:{ "background-color":"#0f1a14" } },
       { id:"base", type:"raster", source:"base" },
@@ -81,13 +82,20 @@ function baseStyle(kind){
           "circle-color":"#5fe0a0", "circle-opacity":0.4,
           "circle-stroke-color":"#0e5a34", "circle-stroke-width":1.1 },
       },
+      { id:"currenttrees", type:"circle", source:"currenttrees", minzoom:12,
+        layout:{ visibility: active.currenttrees ? "visible" : "none" },
+        paint:{
+          "circle-radius":["interpolate",["linear"],["zoom"], 12,1.4, 15,2.6, 18,4.5],
+          "circle-color":"#2fe0d6", "circle-opacity":0.9,
+          "circle-stroke-color":"#083b38", "circle-stroke-width":0.8 },
+      },
     ],
   };
 }
 
 let META = null, PHOTOS = {}, map = null;
 const OVERLAY_IDS = ["heat", "landcover", "canopy", "priority"]; // bottom -> top
-const active = { canopy:false, landcover:false, heat:false, priority:true, plantspots:false };
+const active = { canopy:false, landcover:false, heat:false, priority:true, plantspots:false, currenttrees:false };
 let overlayOpacity = 0.85;
 
 let labelActive = false;   // OSM place/street/landmark labels
@@ -204,6 +212,12 @@ function setPlantspots(on){
   nudge();
 }
 
+function setCurrentTrees(on){
+  active.currenttrees = on;
+  if (map.getLayer("currenttrees")) map.setLayoutProperty("currenttrees", "visibility", on ? "visible" : "none");
+  nudge();
+}
+
 function refreshLayers(){
   for (const id of OVERLAY_IDS){
     if (!map.getLayer(id)) continue;
@@ -235,6 +249,8 @@ function buildUI(){
   if (lt) lt.addEventListener("change", (e) => setLabels(e.target.checked));
   const pt = document.getElementById("plantspotsToggle");
   if (pt) pt.addEventListener("change", (e) => setPlantspots(e.target.checked));
+  const ct = document.getElementById("currenttreesToggle");
+  if (ct) ct.addEventListener("change", (e) => setCurrentTrees(e.target.checked));
   document.getElementById("opacity").addEventListener("input", (e) => {
     overlayOpacity = +e.target.value / 100;
     for (const id of OVERLAY_IDS) if (map.getLayer(id)) map.setPaintProperty(id, "raster-opacity", overlayOpacity);

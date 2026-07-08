@@ -172,6 +172,9 @@
       <p class="hint" style="margin:0 0 14px">Street, colony and chowk names come from OpenStreetMap on the basemap. Zoom in for more.</p>
       <div id="layers"></div>
       <div class="opacity"><label>Overlay</label><input id="opacity" type="range" min="0" max="100" value="85" /></div>
+      <div class="lblrow" style="margin-top:16px"><span>Detected trees <span style="color:var(--ink-faint)">(today's imagery, centre sample)</span></span>
+        <label class="sw-toggle"><input type="checkbox" id="currenttreesToggle"/><span class="track"><span class="thumb"></span></span></label></div>
+      <p class="hint">Cyan dots are individual trees found by an ML model (DeepForest) on present-day satellite imagery, kept only where the spot is actually green and not on a rooftop. A <b>current</b> estimate to set beside the canopy-height layer, which is a few years old. This first pass covers a sample of the city centre (the full district runs on the GPU pipeline in the repo). Switch to <b>Satellite</b> and zoom into the centre to see the dots.</p>
     </div>
     <hr class="rule" />
 
@@ -228,6 +231,6 @@
 
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://unpkg.com/deck.gl@9/dist.min.js"></script>
-<script src="app.js?v=19"></script>
+<script src="app.js?v=20"></script>
 </body>
 </html>
