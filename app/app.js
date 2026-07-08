@@ -217,7 +217,7 @@ function buildStats(){
   if (p) rows.push({ cls:"plant", n:fmtNum(p.stats.area_ha), l:"hectares of hot, treeless, plantable land" });
   if (c) rows.push({ cls:"green", n:c.stats.tree_cover_pct + "%", l:"of the area under tree canopy (satellite, &ge;3 m)" });
   if (h) rows.push({ cls:"hot", n:Math.round(h.stats.mean_c) + "&deg;C", l:"mean ground temperature, " + fmtDate(h.date) });
-  if (h) rows.push({ cls:"hot", n:Math.round(h.stats.max_c) + "&deg;C", l:"hottest surface that day (~50&deg;C air in the heatwave)" });
+  if (h) rows.push({ cls:"hot", n:Math.round(h.stats.max_c) + "&deg;C", l:"hottest surface on that clear day" });
   document.getElementById("stats").innerHTML = rows.map((r) =>
     `<div class="stat ${r.cls}"><div class="n">${r.n}</div><div class="l">${r.l}</div></div>`).join("");
 }
@@ -360,7 +360,7 @@ function buildSources(){
   lines.push("<p><b>Data sources</b> (real, openly licensed)</p>");
   if (L.canopy) lines.push(`<p>Canopy height: <a href="https://registry.opendata.aws/dataforgood-fb-forestsv2/" target="_blank" rel="noopener">Meta &amp; WRI CHM v2</a>, ${L.canopy.license}.</p>`);
   if (L.landcover) lines.push(`<p>Land cover: <a href="https://esa-worldcover.org" target="_blank" rel="noopener">ESA WorldCover ${L.landcover.year}</a>, ${L.landcover.license}.</p>`);
-  if (L.heat) lines.push(`<p>Surface temperature: <a href="https://planetarycomputer.microsoft.com/dataset/landsat-c2-l2" target="_blank" rel="noopener">Landsat C2 L2</a> (${L.heat.scene}, ${fmtDate(L.heat.date)}), ${L.heat.license}. That day's heatwave pushed Larkana to about 50&deg;C air (<a href="https://www.pakistantoday.com.pk/2026/06/12/interior-sindh-temperatures-top-50c-as-karachi-endures-hot-humid-weather" target="_blank" rel="noopener">report</a>); surfaces read hotter than air.</p>`);
+  if (L.heat) lines.push(`<p>Surface temperature: <a href="https://planetarycomputer.microsoft.com/dataset/landsat-c2-l2" target="_blank" rel="noopener">Landsat C2 L2</a> (${L.heat.scene}, ${fmtDate(L.heat.date)}), ${L.heat.license}. One clear-day ground reading; Larkana's June air routinely tops 45&deg;C and sun-baked surfaces read far hotter.</p>`);
   lines.push(`<p>Basemap: OpenStreetMap, CARTO, Esri. Species photos from Wikimedia Commons (credits on each card).</p>`);
   lines.push(`<p style="margin-top:10px;color:var(--ink-faint)">Built by Dr. Safeer Ali Mirani &middot; <a href="mailto:safeer.ali.mirani@gmail.com">contact</a> &middot; data clipped ${fmtDate(META.generated)}.</p>`);
   document.getElementById("sources").innerHTML = lines.join("");
