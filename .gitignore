@@ -1,0 +1,12 @@
+# build/work artifacts
+_cog/
+__pycache__/
+*.pyc
+*.log
+*.err
+run.*
+tile.*
+photos.*
+_probe*.py
+.DS_Store
+Thumbs.db

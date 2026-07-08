@@ -1,0 +1,131 @@
+{
+  "place": "Larkana, Sindh, Pakistan",
+  "center": [
+    68.215,
+    27.56
+  ],
+  "bbox": [
+    68.1,
+    27.47,
+    68.33,
+    27.65
+  ],
+  "generated": "2026-07-07",
+  "layers": {
+    "canopy": {
+      "title": "Tree canopy height",
+      "source": "Meta & WRI High-Resolution Canopy Height v2 (CHMv2)",
+      "license": "CC-BY 4.0",
+      "resolution_m": 1,
+      "display_m": 5.7,
+      "tier": "measured",
+      "tiles_used": [
+        "1231202221",
+        "1231202230"
+      ],
+      "note": "Canopy height from a machine-learning model on ~1 m imagery. It reads height, so it separates trees (tall) from grass, crops and parks (low) - not by colour. Shown at about 5.7 m per pixel; zoom in to pick out individual trees.",
+      "stats": {
+        "tree_cover_pct": 5.5,
+        "mean_height_trees_m": 5.6,
+        "max_height_m": 25.0,
+        "tree_threshold_m": 3.0
+      }
+    },
+    "landcover": {
+      "title": "Land cover",
+      "source": "ESA WorldCover 2021 (v200)",
+      "license": "CC-BY 4.0",
+      "resolution_m": 10,
+      "tier": "measured",
+      "year": 2021,
+      "note": "Independent 10 m land-cover map. Cross-check for the greenery picture.",
+      "breakdown": [
+        {
+          "class": 40,
+          "name": "Cropland",
+          "color": "#f096ff",
+          "pct": 64.5
+        },
+        {
+          "class": 60,
+          "name": "Bare / sparse",
+          "color": "#b4b4b4",
+          "pct": 9.3
+        },
+        {
+          "class": 10,
+          "name": "Tree cover",
+          "color": "#006400",
+          "pct": 7.0
+        },
+        {
+          "class": 50,
+          "name": "Built-up",
+          "color": "#fa0000",
+          "pct": 6.4
+        },
+        {
+          "class": 80,
+          "name": "Water",
+          "color": "#0064c8",
+          "pct": 5.0
+        },
+        {
+          "class": 20,
+          "name": "Shrubland",
+          "color": "#ffbb22",
+          "pct": 4.9
+        },
+        {
+          "class": 30,
+          "name": "Grassland",
+          "color": "#ffff4c",
+          "pct": 2.9
+        },
+        {
+          "class": 90,
+          "name": "Wetland",
+          "color": "#0096a0",
+          "pct": 0.0
+        }
+      ]
+    },
+    "heat": {
+      "title": "Land surface temperature",
+      "source": "Landsat Collection 2 Level-2 (ST_B10), USGS/NASA via MS Planetary Computer",
+      "license": "Public domain (USGS/NASA)",
+      "resolution_m": 30,
+      "tier": "measured",
+      "scene": "LC08_L2SP_152041_20260612_02_T1",
+      "date": "2026-06-12",
+      "cloud_cover_pct": 0.0,
+      "note": "Ground (surface) temperature on one clear day, not air temperature and not a climate average.",
+      "stats": {
+        "min_c": 35.8,
+        "mean_c": 50.2,
+        "max_c": 60.5,
+        "display_min_c": 40.0,
+        "display_max_c": 56.7
+      }
+    },
+    "priority": {
+      "title": "Where to plant",
+      "source": "Derived from CHM canopy + WorldCover land cover + Landsat heat",
+      "tier": "guidance",
+      "resolution_m": 10,
+      "note": "Open, unbuilt land that is hot with little or no canopy - vacant plots, bare ground, scrub, park and canal edges. It deliberately skips rooftops and built-up areas (no planting space) and farmland and water. Brighter, more magenta = hotter, plant first. Guidance from data, not a site survey.",
+      "method": "land cover in {shrubland, grassland, bare} (built-up excluded) AND canopy under 2 m, shaded by surface temperature.",
+      "stats": {
+        "area_ha": 7476,
+        "priority_range_c": [
+          48.0,
+          55.4
+        ]
+      }
+    }
+  },
+  "points": {
+    "trees": 700000,
+    "plant": 600000
+  }
+}

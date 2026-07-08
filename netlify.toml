@@ -1,0 +1,8 @@
+# Serve the static app folder. No build step.
+[build]
+  publish = "app"
+
+[[headers]]
+  for = "/data/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
