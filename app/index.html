@@ -157,7 +157,9 @@
     <div class="pad">
       <h2 class="sec">Where to plant <span class="tier g"><span class="dot g"></span>Guidance</span></h2>
       <div id="priorityCard"></div>
-      <p class="hint">Switch to the <b>Satellite</b> basemap and zoom in to line the highlighted areas up with real streets, plots and open ground.</p>
+      <div class="lblrow" style="margin-top:14px"><span>Plantable spots <span style="color:var(--ink-faint)">(zoom in, click a dot)</span></span>
+        <label class="sw-toggle"><input type="checkbox" id="plantspotsToggle"/><span class="track"><span class="thumb"></span></span></label></div>
+      <p class="hint">Green dots are open, tree-free ground in the built-up core (not on a building or in a field), each with room for a tree. Switch to <b>Satellite</b> and zoom in; click a dot for its clearance.</p>
     </div>
     <hr class="rule" />
 
@@ -226,6 +228,6 @@
 
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://unpkg.com/deck.gl@9/dist.min.js"></script>
-<script src="app.js?v=16"></script>
+<script src="app.js?v=17"></script>
 </body>
 </html>

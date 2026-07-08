@@ -65,20 +65,28 @@ function baseStyle(kind){
       // native canopy pyramid: standard raster tiles (no protocol), bounds stop off-area 404s
       canopy:{ type:"raster", tiles:[canopyTiles], tileSize:256, minzoom:11, maxzoom:16, bounds:[W,S,E,N] },
       priority:{ type:"image", url:"data/priority.png", coordinates:box },
+      plantspots:{ type:"geojson", data:new URL("data/gaps.geojson", location.href).href },
     },
-    // bottom -> top: base, heat, landcover, canopy, priority
+    // bottom -> top: base, heat, landcover, canopy, priority, plantspots
     layers:[
       { id:"bg", type:"background", paint:{ "background-color":"#0f1a14" } },
       { id:"base", type:"raster", source:"base" },
       rast("heat"), rast("landcover", { "raster-resampling":"nearest" }),
       rast("canopy", { "raster-resampling":"nearest" }), rast("priority"),
+      { id:"plantspots", type:"circle", source:"plantspots", minzoom:13.5,
+        layout:{ visibility: active.plantspots ? "visible" : "none" },
+        paint:{
+          "circle-radius":["interpolate",["linear"],["zoom"], 13.5,1.6, 16,4, 18,["+",5,["*",["coalesce",["get","m"],2],0.5]]],
+          "circle-color":"#5fe0a0", "circle-opacity":0.4,
+          "circle-stroke-color":"#0e5a34", "circle-stroke-width":1.1 },
+      },
     ],
   };
 }
 
 let META = null, PHOTOS = {}, map = null;
 const OVERLAY_IDS = ["heat", "landcover", "canopy", "priority"]; // bottom -> top
-const active = { canopy:false, landcover:false, heat:false, priority:true };
+const active = { canopy:false, landcover:false, heat:false, priority:true, plantspots:false };
 let overlayOpacity = 0.85;
 
 let labelActive = false;   // OSM place/street/landmark labels
@@ -120,6 +128,17 @@ async function init(){
   // pmtiles keeps isStyleLoaded() false, so MapLibre won't auto-repaint when a tile
   // arrives; repaint on every data event so newly-loaded tiles actually show.
   map.on("data", () => { try { map.triggerRepaint(); } catch (e) {} });
+
+  // clickable plantable spots
+  map.on("click", "plantspots", (e) => {
+    const m = e.features[0].properties.m;
+    new maplibregl.Popup({ closeButton:false, offset:8 })
+      .setLngLat(e.lngLat)
+      .setHTML(`<b>Plantable spot</b><div class="pp-row">about ${m} m of clear space here - room for a tree</div>`)
+      .addTo(map);
+  });
+  map.on("mouseenter", "plantspots", () => { map.getCanvas().style.cursor = "pointer"; });
+  map.on("mouseleave", "plantspots", () => { map.getCanvas().style.cursor = ""; });
 
   // The pmtiles raster source keeps isStyleLoaded() false, so the render loop can
   // stall before the first paint. Repaint on a short interval during startup until
@@ -178,6 +197,12 @@ function setLabels(on){
   ["lbl-place","lbl-poi","lbl-road"].forEach((id) => { if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", on ? "visible" : "none"); });
 }
 
+function setPlantspots(on){
+  active.plantspots = on;
+  if (map.getLayer("plantspots")) map.setLayoutProperty("plantspots", "visibility", on ? "visible" : "none");
+  nudge();
+}
+
 function refreshLayers(){
   for (const id of OVERLAY_IDS){
     if (!map.getLayer(id)) continue;
@@ -207,6 +232,8 @@ function buildUI(){
   wireBasemap();
   const lt = document.getElementById("labelsToggle");
   if (lt) lt.addEventListener("change", (e) => setLabels(e.target.checked));
+  const pt = document.getElementById("plantspotsToggle");
+  if (pt) pt.addEventListener("change", (e) => setPlantspots(e.target.checked));
   document.getElementById("opacity").addEventListener("input", (e) => {
     overlayOpacity = +e.target.value / 100;
     for (const id of OVERLAY_IDS) if (map.getLayer(id)) map.setPaintProperty(id, "raster-opacity", overlayOpacity);

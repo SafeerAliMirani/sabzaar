@@ -8,5 +8,7 @@ run.*
 tile.*
 photos.*
 _probe*.py
+_buildings.geojson
+*.state
 .DS_Store
 Thumbs.db
