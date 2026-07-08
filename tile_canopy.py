@@ -32,9 +32,38 @@ TILES = os.path.join(OUT, "canopy_tiles")
 W, S, E, N = 68.10, 27.47, 68.33, 27.65
 CHM_BASE = "https://dataforgood-fb-data.s3.amazonaws.com/forests/v2/global/dinov3_global_chm_v2_ml3/chm/"
 QUADKEYS = ["1231202221", "1231202230"]
-MINZ, MAXZ = 11, 16    # native tiles to z16 (~2.4 m); MapLibre overzooms these crisply
+MINZ, MAXZ = 11, 17    # native tiles to z17 (~1.2 m) - tight to actual tree crowns
 TREE_MIN = 1.5         # metres: hard alpha cut - below this is not drawn
 R = 6378137.0
+CACHE = os.path.join(HERE, "_cog")
+os.makedirs(CACHE, exist_ok=True)
+
+
+def download_cog(url, path):
+    """S3 throttles full-file GETs but not byte ranges, so fetch in chunks."""
+    if os.path.exists(path) and os.path.getsize(path) > 1_000_000:
+        print(f"cached {os.path.basename(path)}", flush=True)
+        return
+    import requests
+    total = int(requests.head(url, timeout=30).headers["Content-Length"])
+    print(f"downloading {os.path.basename(path)} ({total//1048576} MB) in chunks...", flush=True)
+    step = 4 * 1024 * 1024
+    with open(path, "wb") as f:
+        pos = 0
+        while pos < total:
+            end = min(pos + step - 1, total - 1)
+            for attempt in range(4):
+                try:
+                    r = requests.get(url, headers={"Range": f"bytes={pos}-{end}"}, timeout=90)
+                    if r.status_code in (200, 206) and r.content:
+                        f.write(r.content)
+                        break
+                except Exception:
+                    time.sleep(2)
+            else:
+                raise RuntimeError("chunk failed at " + str(pos))
+            pos = end + 1
+    print(f"  done {os.path.basename(path)}", flush=True)
 
 
 def ll2m(lon, lat):
@@ -173,7 +202,7 @@ for z in range(MINZ, MAXZ + 1):
 import json
 with open(os.path.join(OUT, "canopy_tiles.json"), "w") as f:
     json.dump({"minzoom": MINZ, "maxzoom": MAXZ, "bounds": [W, S, E, N], "tiles": total,
-               "note": f"native to ~2.4 m (z{MAXZ}); max-pooled so single trees survive"}, f)
+               "note": f"native to ~1.2 m (z{MAXZ}); max-pooled so single trees survive"}, f)
 
 size_mb = sum(os.path.getsize(os.path.join(dp, fn)) for dp, _, fns in os.walk(TILES) for fn in fns) / 1e6
 print(f"wrote {total} tiles to app/data/canopy_tiles/ ({size_mb:.1f} MB, z{MINZ}-{MAXZ})", flush=True)

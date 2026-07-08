@@ -64,7 +64,7 @@ function baseStyle(kind){
       heat:{ type:"image", url:"data/heat.png", coordinates:box },
       landcover:{ type:"image", url:"data/landcover.png", coordinates:box },
       // native canopy pyramid: standard raster tiles (no protocol), bounds stop off-area 404s
-      canopy:{ type:"raster", tiles:[canopyTiles], tileSize:256, minzoom:11, maxzoom:16, bounds:[W,S,E,N] },
+      canopy:{ type:"raster", tiles:[canopyTiles], tileSize:256, minzoom:11, maxzoom:17, bounds:[W,S,E,N] },
       priority:{ type:"image", url:"data/priority.png", coordinates:box },
       plantspots:{ type:"geojson", data:new URL("data/gaps.geojson", location.href).href },
     },
