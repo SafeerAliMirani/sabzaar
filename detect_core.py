@@ -47,6 +47,27 @@ x0, x1 = lon2tx(W, Z), lon2tx(E, Z)
 y0, y1 = lat2ty(N, Z), lat2ty(S, Z)
 print(f"core tiles: x {x0}-{x1} ({x1-x0+1}), y {y0}-{y1} ({y1-y0+1}) = {(x1-x0+1)*(y1-y0+1)} tiles", flush=True)
 
+# FETCH_ONLY: just download+cache all Esri tiles for the AOI, then exit. Run this on a
+# machine WITH internet (your PC, or an HPC login node) so the GPU compute node - which
+# usually has no outbound network - can read the cache offline.
+if os.environ.get("FETCH_ONLY"):
+    import urllib.request as _u
+    tot = (x1 - x0 + 1) * (y1 - y0 + 1); n = 0
+    for x in range(x0, x1 + 1):
+        for y in range(y0, y1 + 1):
+            fp = os.path.join(CACHE, f"{Z}_{x}_{y}.jpg")
+            if not os.path.exists(fp) or os.path.getsize(fp) < 500:
+                for _ in range(4):
+                    try:
+                        d = _u.urlopen(_u.Request(ESRI.format(z=Z, y=y, x=x), headers=UA), timeout=30).read()
+                        open(fp, "wb").write(d); break
+                    except Exception:
+                        time.sleep(1.0)
+            n += 1
+            if n % 200 == 0: print(f"fetched {n}/{tot}", flush=True)
+    print(f"FETCH_ONLY done: {n} tiles cached in {CACHE}", flush=True)
+    raise SystemExit(0)
+
 # ---- load model + buildings once ----
 import inspect
 from deepforest import main as df_main

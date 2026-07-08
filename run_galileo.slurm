@@ -1,40 +1,39 @@
 #!/bin/bash
-# Scale the current-tree detector to the full Larkana district on Galileo (GPU).
-# Same detect_core.py used locally - the AOI and block size come from env vars.
-#
-# IMPORTANT: adjust the account / partition / module lines to your allocation;
-# these names vary by cluster. Check `sinfo` and `module avail` on Galileo.
+# Sabzaar current-tree detection on CINECA Galileo100 (GPU).
+# Tailored to smirani0 / EIRI_E_UNISA2 (same pattern as the CA1 train_gnn_gpu.slurm).
+# The GPU compute node has NO internet, so imagery tiles and the DeepForest model must be
+# cached beforehand - see RUN_ON_GALILEO_SABZAAR.md.
 
-#SBATCH --job-name=sabzaar-trees
-#SBATCH --nodes=1
-#SBATCH --ntasks=1
-#SBATCH --cpus-per-task=8
+#SBATCH --job-name=sabzaar_trees
+#SBATCH -A EIRI_E_UNISA2
+#SBATCH -p g100_usr_interactive
 #SBATCH --gres=gpu:1
-#SBATCH --time=06:00:00
-#SBATCH --partition=boost_usr_prod        # <-- your GPU partition (e.g. g100_usr_prod)
-#SBATCH --account=YOUR_ACCOUNT            # <-- your CINECA account
-#SBATCH --output=sabzaar_%j.log
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=32G
+#SBATCH --time=02:00:00
+#SBATCH --output=logs/sabzaar_trees_%j.out
 
-set -e
+# NOTE: no `set -u` - conda activate scripts reference unbound vars.
+unset PYTHONPATH LD_LIBRARY_PATH
 module purge
-# Adjust to your cluster. Either a module-provided python + CUDA:
-module load python cuda 2>/dev/null || true
-# ...and a venv holding: deepforest, torch(+CUDA), rasterio, geopandas, pillow
-source .venv-detect/bin/activate
+source /g100_work/EIRI_E_UNISA2/smirani0/miniforge3/etc/profile.d/conda.sh
+conda activate /g100_work/EIRI_E_UNISA2/smirani0/sabzaar_detect
+export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
+export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1     # use the pre-cached model, don't hit the network
+set -e
 
-# deepforest uses the GPU automatically when torch.cuda.is_available() is true.
-python -c "import torch; print('CUDA:', torch.cuda.is_available())"
+cd "${SABZAAR_DIR:-$SCRATCH/sabzaar}"
+mkdir -p logs app/data
 
-# ---- full district AOI (edit to taste; this covers Larkana's built-up area) ----
+python -c "import torch; print('CUDA:', torch.cuda.is_available(), (torch.cuda.get_device_name(0) if torch.cuda.is_available() else ''))"
+
+# ---- area of interest: Larkana built-up district (edit as needed) ----
 export AOI_W=68.150 AOI_S=27.520 AOI_E=68.270 AOI_N=27.600
-export BLOCK=16                                  # larger blocks are fine on a GPU
+export BLOCK=16                                   # bigger blocks are fine on a GPU
 export OUTFILE=app/data/current_trees.geojson
 
-# NOTE ON INTERNET: many HPC compute nodes have no outbound network. If so,
-# pre-cache first from a login node (which usually does have internet):
-#   1) python detect_core.py            # populates _esri_sample/ + model caches
-#      (or a small fetch loop over the AOI), then
-#   2) sbatch run_galileo.slurm         # GPU job reads the caches, no network needed.
-# _buildings.geojson (Overture footprints) must also be present in the repo dir.
-
+# Requires (shipped from your PC, see runbook): detect_core.py, _esri_sample/ (cached tiles),
+# _buildings.geojson (Overture footprints), and the DeepForest model in $HOME/.cache.
 srun python detect_core.py
