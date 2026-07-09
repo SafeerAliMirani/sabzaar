@@ -19,3 +19,7 @@ _esri_sample/
 
 lightning_logs/
 detect_preview.png
+
+sabzaar_galileo_bundle.tar.gz
+*.tar.gz
+*.txt

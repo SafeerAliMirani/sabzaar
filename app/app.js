@@ -67,7 +67,7 @@ function baseStyle(kind){
       canopy:{ type:"raster", tiles:[canopyTiles], tileSize:256, minzoom:11, maxzoom:17, bounds:[W,S,E,N] },
       priority:{ type:"image", url:"data/priority.png", coordinates:box },
       plantspots:{ type:"geojson", data:new URL("data/gaps.geojson", location.href).href },
-      currenttrees:{ type:"geojson", data:new URL("data/current_trees.geojson", location.href).href },
+      currenttrees:{ type:"geojson", data:new URL("data/current_trees.geojson?v=2", location.href).href },
     },
     // bottom -> top: base, heat, landcover, canopy, priority, plantspots, currenttrees
     layers:[
