@@ -172,9 +172,9 @@
       <p class="hint" style="margin:0 0 14px">Street, colony and chowk names come from OpenStreetMap on the basemap. Zoom in for more.</p>
       <div id="layers"></div>
       <div class="opacity"><label>Overlay</label><input id="opacity" type="range" min="0" max="100" value="85" /></div>
-      <div class="lblrow" style="margin-top:16px"><span>Detected trees <span style="color:var(--ink-faint)">(today's imagery, city centre)</span></span>
+      <div class="lblrow" style="margin-top:16px"><span>Detected trees <span style="color:var(--ink-faint)">(today's imagery, whole district)</span></span>
         <label class="sw-toggle"><input type="checkbox" id="currenttreesToggle"/><span class="track"><span class="thumb"></span></span></label></div>
-      <p class="hint">Cyan dots are ~17,000 individual trees found by an ML model (DeepForest) on present-day satellite imagery, kept only where the spot is actually green and not on a rooftop - a <b>current</b> estimate to set beside the canopy-height layer, which is a few years old. Computed on a V100 GPU (CINECA Galileo100) over central Larkana. Switch to <b>Satellite</b> and zoom in to see them.</p>
+      <p class="hint">Cyan dots are ~84,000 individual trees found by an ML model (DeepForest) on present-day satellite imagery, kept only where the spot is actually green and not on a rooftop - a <b>current</b> estimate to set beside the canopy-height layer, which is a few years old. Computed across Larkana's whole built-up district on an NVIDIA V100 GPU (CINECA Galileo100). Switch to <b>Satellite</b> and zoom in to see them.</p>
     </div>
     <hr class="rule" />
 
@@ -231,6 +231,6 @@
 
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://unpkg.com/deck.gl@9/dist.min.js"></script>
-<script src="app.js?v=21"></script>
+<script src="app.js?v=22"></script>
 </body>
 </html>
