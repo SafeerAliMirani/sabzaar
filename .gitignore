@@ -26,3 +26,5 @@ sabzaar_galileo_bundle.tar.gz
 
 *.ps1
 *.flag
+
+*.prefilter
