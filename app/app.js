@@ -66,8 +66,8 @@ function baseStyle(kind){
       // native canopy pyramid: standard raster tiles (no protocol), bounds stop off-area 404s
       canopy:{ type:"raster", tiles:[canopyTiles], tileSize:256, minzoom:11, maxzoom:17, bounds:[W,S,E,N] },
       priority:{ type:"image", url:"data/priority.png", coordinates:box },
-      plantspots:{ type:"geojson", data:new URL("data/gaps.geojson", location.href).href },
-      currenttrees:{ type:"geojson", data:new URL("data/current_trees.geojson?v=4", location.href).href },
+      plantspots:{ type:"geojson", data:new URL("data/gaps.geojson?v=2", location.href).href },
+      currenttrees:{ type:"geojson", data:new URL("data/current_trees.geojson?v=5", location.href).href },
     },
     // bottom -> top: base, heat, landcover, canopy, priority, plantspots, currenttrees
     layers:[
@@ -86,8 +86,12 @@ function baseStyle(kind){
         layout:{ visibility: active.currenttrees ? "visible" : "none" },
         paint:{
           "circle-radius":["interpolate",["linear"],["zoom"], 12,1.4, 15,2.6, 18,4.5],
-          "circle-color":"#2fe0d6", "circle-opacity":0.9,
-          "circle-stroke-color":"#083b38", "circle-stroke-width":0.8 },
+          // the height model and the crown detector fail differently, so their
+          // agreement is the confidence: cyan = both agree, amber = only one does
+          "circle-color":["match",["get","tier"], "maybe","#f2b544", "#2fe0d6"],
+          "circle-opacity":["match",["get","tier"], "maybe",0.5, 0.9],
+          "circle-stroke-color":["match",["get","tier"], "maybe","#6b4a10", "#083b38"],
+          "circle-stroke-width":0.8 },
       },
     ],
   };
@@ -299,7 +303,7 @@ function buildLayerCards(){
         <label class="sw-toggle"><input type="checkbox" data-toggle="${id}" ${active[id]?"checked":""}/>
           <span class="track"><span class="thumb"></span></span></label>
       </div>
-      <div class="note">${id === "canopy" ? "Canopy height from an ML model on ~1 m imagery. It reads height, so it separates trees (tall) from grass, crops and parks (low), not by colour. Native-resolution tiles (~2.4 m) - zoom right in to pick out individual tree crowns." : L.note}</div>
+      <div class="note">${id === "canopy" ? "Canopy height from an ML model, built on <b>2016</b> source imagery - a decade old, so it cannot see anything planted since. It reads height, so it separates trees (tall) from grass, crops and parks (low), not by colour. Native-resolution tiles (~1.2 m) - zoom right in to pick out individual tree crowns." : L.note}</div>
       ${legendFor(id, L)}
     </div>`;
   }).join("");

@@ -28,3 +28,5 @@ sabzaar_galileo_bundle.tar.gz
 *.flag
 
 *.prefilter
+
+_roads.geojson

@@ -1,0 +1,16 @@
+{
+ "reject_pct_of_bbox": 9.56,
+ "road_pct": 2.79,
+ "building_pct": 1.92,
+ "detections_raw": 83722,
+ "detections_rejected_by_mask": 6829,
+ "detections_tree": 45582,
+ "detections_maybe": 31311,
+ "gaps_before": 4000,
+ "gaps_after": 3157,
+ "priority_px_before": 702336,
+ "priority_px_after": 656325,
+ "priority_px_removed_pct": 6.6,
+ "plant_points_before": 600000,
+ "plant_points_after": 563011
+}

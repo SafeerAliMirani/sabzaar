@@ -172,9 +172,14 @@
       <p class="hint" style="margin:0 0 14px">Street, colony and chowk names come from OpenStreetMap on the basemap. Zoom in for more.</p>
       <div id="layers"></div>
       <div class="opacity"><label>Overlay</label><input id="opacity" type="range" min="0" max="100" value="85" /></div>
-      <div class="lblrow" style="margin-top:16px"><span>Detected trees <span style="color:var(--ink-faint)">(today's imagery, whole district)</span></span>
+      <div class="lblrow" style="margin-top:16px"><span>Detected trees <span style="color:var(--ink-faint)">(unverified &middot; needs tasdeeq)</span></span>
         <label class="sw-toggle"><input type="checkbox" id="currenttreesToggle"/><span class="track"><span class="thumb"></span></span></label></div>
-      <p class="hint">Cyan dots are ~38,000 trees, each confirmed by four present-day signals - crown shape (DeepForest ML), greenness, canopy <b>height</b> (tall, not grass or shrub) and Sentinel-2 <b>NDVI</b> (actually vegetated) - and not on a rooftop. A high-confidence set: the raw model flagged ~84,000 candidates across Larkana's built-up district, and this keeps only the strongly-confirmed ones. Detected on an NVIDIA V100 GPU (CINECA Galileo100). Switch to <b>Satellite</b> and zoom in to see them.</p>
+      <p class="hint">Two satellite methods that fail in different ways, so their agreement is the confidence.
+        <b style="color:#2fe0d6">Cyan = Trees</b> (~45,600): the height model and the crown detector agree.
+        <b style="color:#f2b544">Amber = Maybe</b> (~31,300): a crown with no height behind it - either a tree planted since the height data was captured, or the detector misreading a blob. Both need eyes.<br><br>
+        Nothing is placed on a building, a road or water: those are <b>rejected outright</b> against Overture building footprints and OpenStreetMap roads, not merely ranked lower.<br><br>
+        Every pin is <b>unverified</b>. The satellite is only a scout - the people of Sindh are the judges. If you know a spot, your <b>tasdeeq</b> (تصديق, verification) is what settles it.<br><br>
+        <span style="color:var(--ink-faint)">Vintage: crowns read from present-day imagery; heights from a model built on <b>2016</b> imagery; land cover <b>2021</b>. Where they disagree, some of that is ten years of real change, not model error.</span></p>
     </div>
     <hr class="rule" />
 
@@ -231,7 +236,7 @@
 
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://unpkg.com/deck.gl@9/dist.min.js"></script>
-<script src="app.js?v=24"></script>
+<script src="app.js?v=25"></script>
 <script>
 (function(){
   var ENDPOINT = 'https://safeer-analytics.safeer-ali-mirani.workers.dev/collect';
@@ -244,8 +249,11 @@
         path: location.pathname,
         referrer: document.referrer || null
       });
-      if (navigator.sendBeacon) navigator.sendBeacon(ENDPOINT, new Blob([body], { type: 'application/json' }));
-      else fetch(ENDPOINT, { method:'POST', body: body, headers:{'Content-Type':'application/json'}, keepalive: true });
+      // text/plain is REQUIRED: application/json is not CORS-safelisted, so the browser
+      // needs a preflight, drops the beacon SILENTLY, and sendBeacon still returns true.
+      // The Worker parses the body as JSON regardless of the declared type.
+      if (navigator.sendBeacon) navigator.sendBeacon(ENDPOINT, new Blob([body], { type: 'text/plain;charset=UTF-8' }));
+      else fetch(ENDPOINT, { method:'POST', body: body, headers:{'Content-Type':'text/plain;charset=UTF-8'}, keepalive: true });
     } catch (_) {}
   }
 
