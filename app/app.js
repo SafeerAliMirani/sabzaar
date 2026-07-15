@@ -141,6 +141,7 @@ async function init(){
   // clickable plantable spots
   map.on("click", "plantspots", (e) => {
     const m = e.features[0].properties.m;
+    if (window.track) window.track("demo_interaction", "plantspot-click");
     new maplibregl.Popup({ closeButton:false, offset:8 })
       .setLngLat(e.lngLat)
       .setHTML(`<b>Plantable spot</b><div class="pp-row">about ${m} m of clear space here - room for a tree</div>`)
@@ -215,6 +216,7 @@ function setPlantspots(on){
 function setCurrentTrees(on){
   active.currenttrees = on;
   if (map.getLayer("currenttrees")) map.setLayoutProperty("currenttrees", "visibility", on ? "visible" : "none");
+  if (on && window.track) window.track("demo_interaction", "detected-trees-on");
   nudge();
 }
 
@@ -362,6 +364,8 @@ function buildPointToggles(){
   const pc = META.points || {};
   if (typeof deck === "undefined" || (!pc.trees && !pc.plant)) {
     el.innerHTML = '<p class="hint">Point layers unavailable.</p>';
+    // deck.gl (WebGL2) genuinely unavailable in this browser - worth knowing how often
+    if (typeof deck === "undefined" && window.track) window.track("webgl_unsupported", "no-deckgl");
     return;
   }
   el.innerHTML = ["trees", "plant"].filter((id) => pc[id]).map((id) => {
@@ -418,6 +422,7 @@ function wireBasemap(){
       document.querySelectorAll("#basemap button").forEach((b) => b.classList.remove("on"));
       btn.classList.add("on");
       map.setStyle(baseStyle(btn.dataset.base));
+      if (btn.dataset.base === "sat" && window.track) window.track("demo_interaction", "satellite-basemap");
     }));
 }
 

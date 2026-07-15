@@ -231,7 +231,38 @@
 
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://unpkg.com/deck.gl@9/dist.min.js"></script>
-<script src="app.js?v=23"></script>
-<!-- Cloudflare Web Analytics --><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "1c2ac3cbd24d45f183538c49a64b381b"}'></script><!-- End Cloudflare Web Analytics -->
+<script src="app.js?v=24"></script>
+<script>
+(function(){
+  var ENDPOINT = 'https://safeer-analytics.safeer-ali-mirani.workers.dev/collect';
+
+  function send(type, label){
+    try {
+      var body = JSON.stringify({
+        type: type,
+        label: label || null,
+        path: location.pathname,
+        referrer: document.referrer || null
+      });
+      if (navigator.sendBeacon) navigator.sendBeacon(ENDPOINT, new Blob([body], { type: 'application/json' }));
+      else fetch(ENDPOINT, { method:'POST', body: body, headers:{'Content-Type':'application/json'}, keepalive: true });
+    } catch (_) {}
+  }
+
+  send('pageview');
+
+  document.addEventListener('click', function(e){
+    var a = e.target.closest ? e.target.closest('a') : null;
+    if (!a) return;
+    var href = a.getAttribute('href') || '';
+    if (/^https?:\/\//.test(href) && href.indexOf(location.host) === -1) {
+      var host = (href.match(/https?:\/\/([^\/]+)/) || [])[1] || 'link';
+      send('outbound_click', host);
+    }
+  }, true);
+
+  window.track = send;   // fire your own events: window.track('demo_interaction','reset-camera')
+})();
+</script>
 </body>
 </html>
