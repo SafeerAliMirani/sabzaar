@@ -30,3 +30,6 @@ sabzaar_galileo_bundle.tar.gz
 *.prefilter
 
 _roads.geojson
+
+.wrangler/
+app/.wrangler/
