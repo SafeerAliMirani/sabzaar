@@ -58,7 +58,7 @@ squeue -u smirani0                 # watch; log in logs/sabzaar_trees_*.out
 scp [email protected]:/g100_scratch/userexternal/smirani0/sabzaar/app/data/current_trees.geojson \
     "C:\Users\Pirah\Claude\Projects\new project for cv\Sabzaar\app\data\current_trees.geojson"
 ```
-Then commit + push (Netlify auto-redeploys); the map's "Detected trees" layer now covers
+Then commit + push (Cloudflare Pages auto-redeploys); the map's "Detected trees" layer now covers
 the whole district. I'll also widen the layer's label/hint from "centre sample" to "district".
 
 ---

@@ -38,7 +38,7 @@ A single deployable web app that:
 - Honest AI note: remote sensing can reliably estimate canopy cover and detect tree crowns (for example DeepForest on high-res RGB). It cannot reliably give tree species or age from satellite. Species and age come from people on the ground in Phase 2. Do not claim species or age from satellite.
 
 ## Tech stack
-- Phase 1: static front-end. Map with MapLibre GL JS (open, no token) or Leaflet. Data as pre-processed GeoJSON, raster tiles, or PMTiles, bundled or from open tile services. A small offline Python step (like the convert.py used in the other projects) can fetch and clip Larkana's canopy and heat data. Deploy on Netlify, same pattern as the other four.
+- Phase 1: static front-end. Map with MapLibre GL JS (open, no token) or Leaflet. Data as pre-processed GeoJSON, raster tiles, or PMTiles, bundled or from open tile services. A small offline Python step (like the convert.py used in the other projects) can fetch and clip Larkana's canopy and heat data. Deploy on Cloudflare Pages, same pattern as the other four.
 - Phase 2: add Supabase (Postgres, auth, storage) or Firebase; contribution markers on the map; image upload with moderation.
 - WebGPU angle (optional, do not force it): Safeer's strength could power a striking canopy or heat visualization layer as a highlight, but MapLibre should handle the core map.
 
@@ -53,7 +53,7 @@ Never blur these. This separation is what keeps the project credible.
 - Honest framing, no overclaiming.
 - Clean and deployable; Phase 1 should be low-maintenance.
 - Concise, direct communication; no em-dashes or AI-tells in code or copy.
-- Deploy pattern: public GitHub repo plus Netlify auto-deploy. Git creds are cached on the Windows machine (use the Windows PowerShell tool for git, Chrome for the GitHub and Netlify web steps).
+- Deploy pattern: public GitHub repo plus Cloudflare Pages auto-deploy (build output dir = `app`, no build command). Git creds are cached on the Windows machine (use the Windows PowerShell tool for git, Chrome for the GitHub and Cloudflare web steps).
 
 ## First steps in the new chat
 1. De-risk the data: confirm we can actually get Larkana's canopy plus a basemap into a browser map (pick exact sources, clip to Larkana's bounding box).

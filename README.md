@@ -2,7 +2,7 @@
 
 A map of Larkana's real tree canopy and summer heat, with a guide to planting the right native shade trees. Built to help green the city and cut its extreme summer heat.
 
-Live: _to be deployed_
+Live: https://sabzaar.pages.dev
 
 ## What it shows
 
