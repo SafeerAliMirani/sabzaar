@@ -272,5 +272,43 @@
   window.track = send;   // fire your own events: window.track('demo_interaction','reset-camera')
 })();
 </script>
+<!-- tour: steps for this page, then the shared engine -->
+<script>
+window.TOUR_STEPS = [
+  {
+    "sel": "#stats",
+    "title": "What you are looking at",
+    "body": "Larkana from above, and how much of it is under a tree. The numbers are counted from real satellite imagery, not estimated."
+  },
+  {
+    "sel": "label.sw-toggle:has(#currenttreesToggle)",
+    "title": "The trees that are there now",
+    "body": "Every tree the detector found in the district, one dot each. Turn it on and the canopy the city already has appears."
+  },
+  {
+    "sel": "label.sw-toggle:has(#plantspotsToggle)",
+    "title": "Where to plant next",
+    "body": "The places that are hot, built up, and have nothing growing. This is the answer the whole map exists to give."
+  },
+  {
+    "sel": "#layers",
+    "title": "What to draw",
+    "body": "Heat, canopy, and the rest. Stack them to see which parts of the city are hot because they are bare."
+  },
+  {
+    "sel": "#map",
+    "title": "The map itself",
+    "body": "Drag to move, scroll to zoom. Click anything for the numbers behind it."
+  },
+  {
+    "sel": "#sources",
+    "title": "Where it all comes from",
+    "body": "Every layer names its satellite, its date, and its licence."
+  }
+];
+window.TOUR_OPTIONS = { readySel: "#panel" };
+</script>
+<script src="tour.js"></script>
+<!-- /tour -->
 </body>
 </html>
